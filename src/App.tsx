@@ -29,7 +29,8 @@ import {
 import { KEYS } from 'platejs';
 import { Plate, usePlateEditor } from "platejs/react";
 import { InlineEquationToolbarButton } from "./components/ui/equation-toolbar-button";
-import { serializeWithKatex } from "./serializeWithKatex";
+// import { serializeWithKatex } from "./serializeWithKatex";
+import { serializeHtml } from "platejs";
 
 const initialValue: Value = [
   {
@@ -116,7 +117,7 @@ export default function App() {
       </EditorContainer>
     </Plate>
     <button onClick={async () => {
-      const html = await serializeWithKatex(editor);
+      const html = await serializeHtml(editor);
 
       console.log('html', html)
     }} style={{ border: "1px solid red"}}>
