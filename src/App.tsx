@@ -29,6 +29,7 @@ import {
 import { KEYS } from 'platejs';
 import { Plate, usePlateEditor } from "platejs/react";
 import { InlineEquationToolbarButton } from "./components/ui/equation-toolbar-button";
+import { serializeWithKatex } from "./serializeWithKatex";
 
 const initialValue: Value = [
   {
@@ -78,6 +79,7 @@ export default function App() {
   });
 
   return (
+    <>
     <Plate
       editor={editor}
       onChange={({ value }) => {
@@ -113,5 +115,13 @@ export default function App() {
         <Editor placeholder="Type your amazing content here..." />
       </EditorContainer>
     </Plate>
+    <button onClick={async () => {
+      const html = await serializeWithKatex(editor);
+
+      console.log('html', html)
+    }} style={{ border: "1px solid red"}}>
+      Serialize
+    </button>
+    </>
   );
 }
