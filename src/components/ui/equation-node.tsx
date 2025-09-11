@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/ban-ts-comment */
 "use client";
 
 import * as React from "react";
@@ -5,8 +6,8 @@ import TextareaAutosize, {
   type TextareaAutosizeProps,
 } from "react-textarea-autosize";
 
-import "katex/dist/katex.min.js";
 import "katex/contrib/mhchem";
+import "katex/dist/katex.min.js";
 
 import type { TEquationElement } from "platejs";
 import type { PlateElementProps } from "platejs/react";
@@ -32,17 +33,6 @@ import {
 } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
 
-const getKatexOptions = (isChemistry?: boolean) => ({
-  displayMode: true,
-  macros: {
-    "\\water": "\\ce{H2O}",
-    "\\glucose": "\\ce{C6H12O6}",
-  },
-  strict: "ignore",
-  throwOnError: false,
-  trust: true,
-});
-
 export function EquationElement(props: PlateElementProps<TEquationElement>) {
   const selected = useSelected();
   const [open, setOpen] = React.useState(selected);
@@ -55,7 +45,16 @@ export function EquationElement(props: PlateElementProps<TEquationElement>) {
   useEquationElement({
     element: props.element,
     katexRef: katexRef,
-    options: getKatexOptions(isChemistry),
+    options: {
+      displayMode: true,
+      macros: {
+        "\\water": "\\ce{H2O}",
+        "\\glucose": "\\ce{C6H12O6}",
+      },
+      strict: "ignore",
+      throwOnError: false,
+      trust: true,
+    },
   });
 
   return (
@@ -126,7 +125,16 @@ export function InlineEquationElement(
   useEquationElement({
     element,
     katexRef: katexRef,
-    options: getKatexOptions(isChemistry),
+    options: {
+      displayMode: true,
+      macros: {
+        "\\water": "\\ce{H2O}",
+        "\\glucose": "\\ce{C6H12O6}",
+      },
+      strict: "ignore",
+      throwOnError: false,
+      trust: true,
+    },
   });
 
   return (
@@ -190,8 +198,6 @@ const EquationPopoverContent = ({
   isInline,
   open,
   setOpen,
-  isChemistry,
-  setIsChemistry,
   ...props
 }: {
   isInline: boolean;
@@ -224,28 +230,53 @@ const EquationPopoverContent = ({
     }
   };
 
+  // Enhanced version with better Plate integration
   const insertChemistryTemplate = (template: string) => {
-    // Get current textarea and insert template at cursor
-    const textarea = document.querySelector(
-      "[data-plate-editor] textarea"
-    ) as HTMLTextAreaElement;
-    if (textarea) {
-      const start = textarea.selectionStart;
-      const end = textarea.selectionEnd;
-      const currentValue = textarea.value;
+    // Method 1: Try to use the textarea directly
+    const textarea = document.activeElement as HTMLTextAreaElement;
+
+    if (textarea && textarea.tagName === "TEXTAREA") {
+      const start = textarea.selectionStart || 0;
+      const end = textarea.selectionEnd || 0;
+      const currentValue = textarea.value || "";
+
+      // Create new value with template inserted
       const newValue =
         currentValue.slice(0, start) + template + currentValue.slice(end);
 
-      // Trigger change event to update the editor
-      textarea.value = newValue;
-      textarea.dispatchEvent(new Event("input", { bubbles: true }));
+      // Update textarea using React's synthetic event approach
+      const nativeInputValueSetter = Object.getOwnPropertyDescriptor(
+        window.HTMLTextAreaElement.prototype,
+        "value"
+      )?.set;
+
+      if (nativeInputValueSetter) {
+        nativeInputValueSetter.call(textarea, newValue);
+
+        // Dispatch React-compatible input event
+        const event = new Event("input", { bubbles: true });
+        Object.defineProperty(event, "target", {
+          writable: false,
+          value: textarea,
+        });
+        textarea.dispatchEvent(event);
+      }
 
       // Set cursor position after template
-      setTimeout(() => {
-        textarea.selectionStart = textarea.selectionEnd =
-          start + template.length;
+      requestAnimationFrame(() => {
+        const newCursorPos = start + template.length;
+        textarea.setSelectionRange(newCursorPos, newCursorPos);
         textarea.focus();
-      }, 0);
+      });
+    } else {
+      // Method 2: Use Plate's editor API directly
+      const currentValue = element.texExpression || "";
+      // @ts-ignore
+      editor.setNodes(
+        { texExpression: currentValue + template },
+        // @ts-ignore
+        { at: editor.findPath(element) }
+      );
     }
   };
 
@@ -260,7 +291,7 @@ const EquationPopoverContent = ({
       {/* Chemistry Templates */}
       <div className="flex flex-wrap gap-1 p-2 bg-muted/50 rounded">
         <span className="text-xs font-medium text-muted-foreground mb-1 w-full">
-          Chemistry Templates:
+          Plantilla de química:
         </span>
         <Button
           variant="outline"
@@ -276,7 +307,7 @@ const EquationPopoverContent = ({
           className="text-xs h-6 px-2"
           onClick={() => insertChemistryTemplate("\\ce{2H2 + O2 -> 2H2O}")}
         >
-          Reaction
+          Reacción
         </Button>
         <Button
           variant="outline"
@@ -284,7 +315,7 @@ const EquationPopoverContent = ({
           className="text-xs h-6 px-2"
           onClick={() => insertChemistryTemplate("\\ce{C6H12O6}")}
         >
-          Glucose
+          Glucosa
         </Button>
         <Button
           variant="outline"
@@ -292,7 +323,7 @@ const EquationPopoverContent = ({
           className="text-xs h-6 px-2"
           onClick={() => insertChemistryTemplate("\\pu{123 kJ/mol}")}
         >
-          Units
+          Unidades
         </Button>
       </div>
 
@@ -310,9 +341,9 @@ const EquationPopoverContent = ({
       </div>
 
       <div className="text-xs text-muted-foreground px-2">
-        <strong>Chemistry:</strong> Use \ce{} for formulas, \pu{} for units
+        <strong>Química:</strong> Usa \ce{} para fórmulas, \pu{} para unidades
         <br />
-        <strong>Math:</strong> Standard LaTeX syntax
+        <strong>Matemática:</strong> Sintaxis estándar de LaTeX
       </div>
     </PopoverContent>
   );
